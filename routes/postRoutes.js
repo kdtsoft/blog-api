@@ -16,7 +16,10 @@ router.post(
   "/",
   protect,
   adminOnly,
-  upload.fields([{ name: "image", maxCount: 1 }, { name: "file", maxCount: 1 }]),
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "file", maxCount: 1 },
+  ]),
   async (req, res, next) => {
     try {
       const { title, content, category, status } = req.body;
@@ -26,9 +29,13 @@ router.post(
         content,
         category,
         status: status || "published",
-        image: req.files?.image?.[0] ? "/uploads/" + req.files.image[0].filename : null,
-        file: req.files?.file?.[0] ? "/uploads/" + req.files.file[0].filename : null,
-        author: req.user.id
+        image: req.files?.image?.[0]
+          ? "/uploads/images/" + req.files.image[0].filename
+          : null,
+        file: req.files?.file?.[0]
+          ? "/uploads/files/" + req.files.file[0].filename
+          : null,
+        author: req.user.id,
       });
 
       res.status(201).json(newPost);
@@ -38,7 +45,7 @@ router.post(
   }
 );
 
-// GET all posts (with simple pagination & filters)
+// GET all posts (with pagination & filters)
 router.get("/", async (req, res, next) => {
   try {
     const page = parseInt(req.query.page || "1");
@@ -77,7 +84,10 @@ router.get("/:idOrSlug", async (req, res, next) => {
     const key = req.params.idOrSlug;
     const query = key.match(/^[0-9a-fA-F]{24}$/) ? { _id: key } : { slug: key };
 
-    const post = await Post.findOne(query).populate("author", "username email isAdmin");
+    const post = await Post.findOne(query).populate(
+      "author",
+      "username email isAdmin"
+    );
     if (!post) return res.status(404).json({ message: "Post not found" });
 
     res.json(post);
@@ -91,7 +101,10 @@ router.put(
   "/:id",
   protect,
   adminOnly,
-  upload.fields([{ name: "image", maxCount: 1 }, { name: "file", maxCount: 1 }]),
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "file", maxCount: 1 },
+  ]),
   async (req, res, next) => {
     try {
       const updates = {
@@ -101,12 +114,10 @@ router.put(
         status: req.body.status,
       };
 
-      if (req.files?.image?.[0]) {
-        updates.image = "/uploads/" + req.files.image[0].filename;
-      }
-      if (req.files?.file?.[0]) {
-        updates.file = "/uploads/" + req.files.file[0].filename;
-      }
+      if (req.files?.image?.[0])
+        updates.image = "/uploads/images/" + req.files.image[0].filename;
+      if (req.files?.file?.[0])
+        updates.file = "/uploads/files/" + req.files.file[0].filename;
 
       const post = await Post.findByIdAndUpdate(req.params.id, updates, {
         new: true,

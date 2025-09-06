@@ -2,24 +2,30 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// ensure uploads dir
-const uploadDir = path.join(__dirname, "..", "uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+// Ensure folders exist
+const uploadBase = path.join(__dirname, "..", "uploads");
+const imageDir = path.join(uploadBase, "images");
+const fileDir = path.join(uploadBase, "files");
+
+if (!fs.existsSync(uploadBase)) fs.mkdirSync(uploadBase);
+if (!fs.existsSync(imageDir)) fs.mkdirSync(imageDir);
+if (!fs.existsSync(fileDir)) fs.mkdirSync(fileDir);
 
 // Storage
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
+  destination: (req, file, cb) => {
+    if (file.fieldname === "image") cb(null, imageDir);
+    else cb(null, fileDir);
+  },
   filename: (req, file, cb) => {
     const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, unique + path.extname(file.originalname));
   },
 });
 
-// File filter (image/* বা যেকোনো ফাইল—দুটিই allow করবো, তবে mime check আলাদা ফিল্ডে)
+// File filter
 function fileFilter(req, file, cb) {
-  // উদাহরণ: ছবি হলে image ফিল্ডে আসবে, নাহলে file ফিল্ডে
-  const isImageField = file.fieldname === "image";
-  if (isImageField) {
+  if (file.fieldname === "image") {
     if (file.mimetype.startsWith("image/")) return cb(null, true);
     return cb(new Error("Only image files allowed in 'image' field"));
   }
@@ -30,7 +36,7 @@ function fileFilter(req, file, cb) {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB প্রতি ফাইল
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB per file
 });
 
 module.exports = upload;
